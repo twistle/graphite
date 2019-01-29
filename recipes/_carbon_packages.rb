@@ -23,11 +23,19 @@
 # Compliler is needed to build Twisted gem on this step
 package platform_family?('debian') ? 'build-essential' : 'gcc'
 
-python_package 'Twisted' do
+bash 'Install Twisted python library'
   user node['graphite']['user']
   group node['graphite']['group']
+  package_name 'Twisted'
+  install_options ''
   version lazy { node['graphite']['twisted_version'] }
+  python_version lazy { version ? '==' + version : ''}
   virtualenv node['graphite']['base_dir']
+  code <<-EOF
+      source #{virtualenv}/bin/activate
+      pip install --upgrade #{install_options} "#{package_name}#{python_version}"
+      chown -R #{user}:#{group} #{virtualenv}
+  EOF
   only_if do
     # Install explicit version of Twisted only if it is specified in attributes
     # Otherwise the actual version will be installed as a dependency
@@ -36,7 +44,7 @@ python_package 'Twisted' do
   end
 end
 
-python_package 'carbon' do
+bash 'Install carbon' do
   package_name lazy {
     node['graphite']['package_names']['carbon'][node['graphite']['install_type']]
   }
@@ -46,5 +54,12 @@ python_package 'carbon' do
   user node['graphite']['user']
   group node['graphite']['group']
   install_options '--no-binary=:all:'
+  python_version lazy { version ? '==' + version : ''}
   virtualenv node['graphite']['base_dir']
+  code <<-EOF
+      source #{virtualenv}/bin/activate
+      pip install --upgrade #{install_options} "#{package_name}#{python_version}"
+      chown -R #{user}:#{group} #{virtualenv}
+  EOF
+
 end

@@ -19,11 +19,19 @@
 
 package Array(node['graphite']['system_packages'])
 
-python_package 'django' do
+bash 'Install Django python package' do
   user node['graphite']['user']
   group node['graphite']['group']
   version lazy { node['graphite']['django_version'] }
+  package_name 'Django'
+  install_options ''
+  python_version lazy { version ? '==' + version : ''}
   virtualenv node['graphite']['base_dir']
+  code <<-EOF
+      source #{virtualenv}/bin/activate
+      pip install --upgrade #{install_options} "#{package_name}#{python_version}"
+      chown -R #{user}:#{group} #{virtualenv}
+  EOF
   only_if do
     # Install explicit version of django only if it is specified in attributes
     version = node['graphite']['django_version']
@@ -31,14 +39,22 @@ python_package 'django' do
   end
 end
 
-python_package 'uwsgi' do
+bash 'Install uwsgi python package' do
   user node['graphite']['user']
   group node['graphite']['group']
-  options '--isolated'
+  install_options '--isolated'
   virtualenv node['graphite']['base_dir']
+  python_version ''
+  package_name 'uwsgi'
+  virtualenv node['graphite']['base_dir']
+  code <<-EOF
+      source #{virtualenv}/bin/activate
+      pip install --upgrade #{install_options} "#{package_name}#{python_version}"
+      chown -R #{user}:#{group} #{virtualenv}
+  EOF
 end
 
-python_package 'graphite_web' do
+bash 'Install python package graphite_web' do
   package_name lazy {
     key = node['graphite']['install_type']
     node['graphite']['package_names']['graphite_web'][key]
@@ -46,8 +62,14 @@ python_package 'graphite_web' do
   version lazy {
     node['graphite']['version'] if node['graphite']['install_type'] == 'package'
   }
+  python_version lazy { version ? '==' + version : ''}
   user node['graphite']['user']
   group node['graphite']['group']
   install_options '--no-binary=:all:'
   virtualenv node['graphite']['base_dir']
+  code <<-EOF
+      source #{virtualenv}/bin/activate
+      pip install --upgrade #{options} "#{package_name}#{python_version}"
+      chown -R #{user}:#{group} #{virtualenv}
+  EOF
 end
